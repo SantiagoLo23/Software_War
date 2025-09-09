@@ -1,0 +1,15 @@
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { RolesDecorator } from '../auth/decorators/roles.decorator';
+import { Roles } from '../auth/roles';
+
+@Controller('users')
+export class UsersController {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN)
+  @Get('protected')
+  getProtectedData() {
+    return { message: 'Access granted to Juan' };
+  }
+}
