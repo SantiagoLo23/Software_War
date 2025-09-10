@@ -1,49 +1,21 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { ConfigModule } from '@nestjs/config';
-
-// Controllers
-import { VictimController } from './victims/victims.controller';
-import { FeedbackController } from './feedback/feedback.controller';
-import { RewardController } from './reward/reward.controller';
-
-// Services
-import { VictimService } from './victims/victims.service';
-import { FeedbackService } from './feedback/feedback.service';
-import { RewardService } from './reward/reward.service';
-
-// Schemas
-import { User, UserSchema } from './users/schemas/user.schema';
-import { Victim, VictimSchema } from './victims/schemas/victim.schema';
-import { Feedback, FeedbackSchema } from './feedback/schemas/feedback.schema';
-import { Reward, RewardSchema } from './reward/schemas/reward.schema';
+import { VictimsModule } from './victims/victims.module'; // ✅ Importar módulo
+import { FeedbackModule } from './feedback/feedback.module'; // ✅ Importar módulo
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    MongooseModule.forRoot(process.env.MONGODB_URI || 'your-mongodb-uri-here'),
-    MongooseModule.forFeature([
-      { name: User.name, schema: UserSchema },
-      { name: Victim.name, schema: VictimSchema },
-      { name: Feedback.name, schema: FeedbackSchema },
-      { name: Reward.name, schema: RewardSchema },
-    ]),
+    MongooseModule.forRoot(process.env.MONGO_URI || 'mongodb://localhost:27017/software_war'),
     AuthModule,
     UsersModule,
-  ],
-  controllers: [
-    VictimController,
-    FeedbackController,
-    RewardController,
-  ],
-  providers: [
-    VictimService,
-    FeedbackService,
-    RewardService,
+    VictimsModule, // ✅ Agregar módulos
+    FeedbackModule, // ✅ Agregar módulos
   ],
 })
 export class AppModule {}

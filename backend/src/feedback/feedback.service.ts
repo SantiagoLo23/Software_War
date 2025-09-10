@@ -11,7 +11,7 @@ export class FeedbackService {
     @InjectModel(Feedback.name) private feedbackModel: Model<FeedbackDocument>,
   ) {}
 
-  async createFeedback(createFeedbackDto: CreateFeedbackDto): Promise<Feedback> {
+  async createFeedback(createFeedbackDto: CreateFeedbackDto): Promise<FeedbackDocument> {
     const feedback = new this.feedbackModel({
       ...createFeedbackDto,
       status: FeedbackStatus.PENDING,
@@ -19,7 +19,7 @@ export class FeedbackService {
     return feedback.save();
   }
 
-  async findAllFeedback(adminView: boolean = false): Promise<Feedback[]> {
+  async findAllFeedback(adminView: boolean = false): Promise<FeedbackDocument[]> {
     const query = adminView ? {} : { isPublic: true };
     return this.feedbackModel
       .find(query)
@@ -27,7 +27,7 @@ export class FeedbackService {
       .exec();
   }
 
-  async findPublicFeedback(): Promise<Feedback[]> {
+  async findPublicFeedback(): Promise<FeedbackDocument[]> {
     return this.feedbackModel
       .find({ 
         isPublic: true,
@@ -41,7 +41,7 @@ export class FeedbackService {
       .exec();
   }
 
-  async findResistanceTips(): Promise<Feedback[]> {
+  async findResistanceTips(): Promise<FeedbackDocument[]> {
     return this.feedbackModel
       .find({ 
         type: FeedbackType.RESISTANCE_TIP,
@@ -52,7 +52,7 @@ export class FeedbackService {
       .exec();
   }
 
-  async findSurvivalStories(): Promise<Feedback[]> {
+  async findSurvivalStories(): Promise<FeedbackDocument[]> {
     return this.feedbackModel
       .find({ 
         type: FeedbackType.SURVIVAL_STORY,
@@ -63,7 +63,7 @@ export class FeedbackService {
       .exec();
   }
 
-  async findSlaveReports(): Promise<Feedback[]> {
+  async findSlaveReports(): Promise<FeedbackDocument[]> {
     return this.feedbackModel
       .find({ 
         type: FeedbackType.SLAVE_ACTIVITY_REPORT 
@@ -72,7 +72,7 @@ export class FeedbackService {
       .exec();
   }
 
-  async findFeedbackById(id: string): Promise<Feedback> {
+  async findFeedbackById(id: string): Promise<FeedbackDocument> {
     const feedback = await this.feedbackModel.findById(id).exec();
     if (!feedback) {
       throw new NotFoundException('Feedback not found');
@@ -80,7 +80,7 @@ export class FeedbackService {
     return feedback;
   }
 
-  async updateFeedback(id: string, updateFeedbackDto: UpdateFeedbackDto, adminId?: string): Promise<Feedback> {
+  async updateFeedback(id: string, updateFeedbackDto: UpdateFeedbackDto, adminId?: string): Promise<FeedbackDocument> {
     const updateData = { ...updateFeedbackDto };
     
     if (adminId) {
@@ -106,20 +106,39 @@ export class FeedbackService {
     }
   }
 
-  async voteFeedback(id: string, voteType: 'upvote' | 'downvote'): Promise<Feedback> {
-    const feedback = await this.findFeedbackById(id);
+  async voteFeedback(id: string, voteType: 'upvote' | 'downvote'): Promise<FeedbackDocument> {
+    const updateOperation = voteType === 'upvote' 
+      ? { $inc: { upvotes: 1 } } 
+      : { $inc: { downvotes: 1 } };
     
-    const updateField = voteType === 'upvote' ? { upvotes: feedback.upvotes + 1 } : { downvotes: feedback.downvotes + 1 };
+    const updatedFeedback = await this.feedbackModel
+      .findByIdAndUpdate(id, updateOperation, { new: true })
+      .exec();
     
-    return this.feedbackModel.findByIdAndUpdate(id, updateField, { new: true }).exec();
+    if (!updatedFeedback) {
+      throw new NotFoundException('Feedback not found');
+    }
+    
+    return updatedFeedback;
   }
 
   async getFeedbackStats(): Promise<{
     total: number;
-    byType: any;
-    byStatus: any;
-    topRatedTips: Feedback[];
-    recentReports: Feedback[];
+    byType: {
+      slaveActivityReport: number;
+      survivalStory: number;
+      resistanceTip: number;
+      bugReport: number;
+      generalFeedback: number;
+    };
+    byStatus: {
+      pending: number;
+      reviewed: number;
+      resolved: number;
+      dismissed: number;
+    };
+    topRatedTips: FeedbackDocument[];
+    recentReports: FeedbackDocument[];
   }> {
     const allFeedback = await this.feedbackModel.find().exec();
     
@@ -138,8 +157,8 @@ export class FeedbackService {
         resolved: 0,
         dismissed: 0,
       },
-      topRatedTips: [],
-      recentReports: [],
+      topRatedTips: [] as FeedbackDocument[],
+      recentReports: [] as FeedbackDocument[],
     };
 
     // Count by type and status

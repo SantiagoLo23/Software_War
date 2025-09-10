@@ -6,6 +6,7 @@ import { Victim, VictimDocument, TransformationStatus } from '../victims/schemas
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { CreateVictimDto, UpdateVictimDto, VictimStatsDto } from '../victims/dto/create-victim.dto';
 
+
 @Injectable()
 export class VictimService {
   constructor(
@@ -41,7 +42,7 @@ export class VictimService {
     const victim = await this.findVictimById(id);
     
     // Solo Juan Sao Ville puede editar cualquier víctima, los slaves solo las suyas
-    if (userRole !== 'juan_sao_ville' && victim.capturedBy !== userId) {
+    if (userRole !== 'juan' && victim.capturedBy !== userId) {
       throw new ForbiddenException('You can only edit victims you captured');
     }
 
@@ -55,6 +56,10 @@ export class VictimService {
       .findByIdAndUpdate(id, updateVictimDto, { new: true })
       .exec();
     
+    if (!updatedVictim) {
+      throw new NotFoundException('Victim not found after update');
+    }
+    
     return updatedVictim;
   }
 
@@ -62,7 +67,7 @@ export class VictimService {
     const victim = await this.findVictimById(id);
     
     // Solo Juan Sao Ville puede eliminar cualquier víctima, los slaves solo las suyas
-    if (userRole !== 'juan_sao_ville' && victim.capturedBy !== userId) {
+    if (userRole !== 'juan' && victim.capturedBy !== userId) {
       throw new ForbiddenException('You can only delete victims you captured');
     }
 
@@ -121,8 +126,8 @@ export class VictimService {
     stats.topCapturers = slaves
       .map(slave => ({
         slaveName: slave.username,
-        slaveId: slave._id.toString(),
-        captureCount: capturerCounts[slave._id.toString()] || 0,
+        slaveId: (slave._id as any).toString(),
+        captureCount: capturerCounts[(slave._id as any).toString()] || 0,
       }))
       .sort((a, b) => b.captureCount - a.captureCount)
       .slice(0, 10); // Top 10

@@ -25,7 +25,7 @@ export class VictimController {
   
   @Post()
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('slave', 'juan_sao_ville')
+  // @Roles('slave', 'juan')
   async createVictim(
     @Body() createVictimDto: CreateVictimDto,
     // @Request() req,
@@ -39,7 +39,7 @@ export class VictimController {
 
   @Get()
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('juan_sao_ville')
+  // @Roles('juan')
   async getAllVictims() {
     return this.victimService.findAllVictims();
   }
@@ -81,7 +81,7 @@ export class VictimController {
 
   @Put(':id')
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('slave', 'juan_sao_ville')
+  // @Roles('slave', 'juan')
   async updateVictim(
     @Param('id') id: string,
     @Body() updateVictimDto: UpdateVictimDto,
@@ -98,7 +98,7 @@ export class VictimController {
 
   @Delete(':id')
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('slave', 'juan_sao_ville')
+  // @Roles('slave', 'juan')
   async deleteVictim(
     @Param('id') id: string,
     @Query('userId') userId?: string, // Temporal para testing
@@ -116,14 +116,14 @@ export class VictimController {
 
   @Get('slave/:slaveId/victims')
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('juan_sao_ville')
+  // @Roles('juan')
   async getVictimsBySlave(@Param('slaveId') slaveId: string) {
     return this.victimService.findVictimsByCapture(slaveId);
   }
 
   @Get('slave/:slaveId/stats')
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('juan_sao_ville')
+  // @Roles('juan')
   async getSlaveStats(@Param('slaveId') slaveId: string) {
     return this.victimService.getSlaveStats(slaveId);
   }

@@ -58,28 +58,28 @@ export class FeedbackController {
   
   @Get('admin/all')
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('juan_sao_ville')
+  // @Roles('juan')
   async getAllFeedbackForAdmin() {
     return this.feedbackService.findAllFeedback(true);
   }
 
   @Get('admin/slave-reports')
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('juan_sao_ville')
+  // @Roles('juan')
   async getSlaveReports() {
     return this.feedbackService.findSlaveReports();
   }
 
   @Get('admin/stats')
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('juan_sao_ville')
+  // @Roles('juan')
   async getFeedbackStats() {
     return this.feedbackService.getFeedbackStats();
   }
 
   @Put('admin/:id')
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('juan_sao_ville')
+  // @Roles('juan')
   async updateFeedback(
     @Param('id') id: string,
     @Body() updateFeedbackDto: UpdateFeedbackDto,
@@ -92,7 +92,7 @@ export class FeedbackController {
 
   @Delete('admin/:id')
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('juan_sao_ville')
+  // @Roles('juan')
   async deleteFeedback(@Param('id') id: string) {
     await this.feedbackService.deleteFeedback(id);
     return { message: 'Feedback deleted successfully' };
