@@ -1,28 +1,70 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
-import * as bcrypt from 'bcrypt';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { Roles } from '../auth/roles';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
+  // Create new user (signup)
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-    const newUser = new this.userModel({
-      ...createUserDto,
-      password: hashedPassword,
-    });
+    const newUser = new this.userModel(createUserDto);
     return newUser.save();
   }
 
+  // Get all users (admin only)
   async findAll(): Promise<User[]> {
     return this.userModel.find().exec();
   }
 
-  async findByUsername(username: string): Promise<any> {
-    return this.userModel.findOne({ username }).lean().exec();
+  // Get user by ID
+  async findById(id: string): Promise<User> {
+    const user = await this.userModel.findById(id).exec();
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    return user;
+  }
+
+  // Update user by ID
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(id, updateUserDto, {
+        new: true,
+      })
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return updatedUser;
+  }
+
+  // Delete user by ID
+  async remove(id: string): Promise<{ message: string }> {
+    const result = await this.userModel.findByIdAndDelete(id).exec();
+    if (!result) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    return { message: `User with ID ${id} deleted successfully` };
+  }
+
+  // Get top 10 slaves by captureCount
+  async getLeaderboard(): Promise<User[]> {
+    return this.userModel
+      .find({ role: Roles.SLAVE }) // o Roles.SLAVE si usas enum
+      .sort({ captureCount: -1 })
+      .limit(10)
+      .exec();
+  }
+
+  // Find user by username
+  async findByUsername(username: string): Promise<User | null> {
+    return this.userModel.findOne({ username }).exec();
   }
 }

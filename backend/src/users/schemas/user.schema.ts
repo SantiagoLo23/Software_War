@@ -19,6 +19,9 @@ export class User {
 
   @Prop({ required: true, enum: UserRole })
   role: UserRole;
+
+  @Prop({ default: 0 })
+  captureCount: number;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
