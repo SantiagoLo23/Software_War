@@ -34,6 +34,13 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN)
+  @Get('protected')
+  getProtectedData() {
+    return { message: 'Access granted to Juan' };
+  }
+
   // Get user by ID
   @UseGuards(JwtAuthGuard)
   @Get(':id')
@@ -67,13 +74,4 @@ export class UsersController {
   async getLeaderboard() {
     return this.usersService.getLeaderboard();
   }
-
-  /*
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @RolesDecorator(Roles.JUAN)
-  @Get('protected')
-  getProtectedData() {
-    return { message: 'Access granted to Juan' };
-  }
-  */
 }

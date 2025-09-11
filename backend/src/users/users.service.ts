@@ -5,14 +5,24 @@ import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles } from '../auth/roles';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
-  // Create new user (signup)
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const newUser = new this.userModel(createUserDto);
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(
+      createUserDto.password,
+      saltRounds,
+    );
+
+    const newUser = new this.userModel({
+      ...createUserDto,
+      password: hashedPassword,
+    });
+
     return newUser.save();
   }
 
@@ -64,7 +74,8 @@ export class UsersService {
   }
 
   // Find user by username
-  async findByUsername(username: string): Promise<User | null> {
+
+  async findByUsername(username: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ username }).exec();
   }
 }
