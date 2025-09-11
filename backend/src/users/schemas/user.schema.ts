@@ -22,6 +22,9 @@ export class User {
 
   @Prop({ default: 0 })
   captureCount: number;
+
+  @Prop({ default: false })
+  isVictim: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

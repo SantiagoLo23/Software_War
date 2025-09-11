@@ -13,18 +13,28 @@ export class VictimsService {
     @InjectModel(User.name) private userModel: Model<any>,
   ) {}
 
-  async create(createVictimDto: CreateVictimDto): Promise<Victim> {
-    const newVictim = new this.victimModel(createVictimDto);
-    const savedVictim = await newVictim.save();
-
-    // Incrementar contador del esclavo
+  async create(createVictimDto: CreateVictimDto, captorId: string): Promise<Victim> {
+    // 1. Marcar al developer como víctima
     await this.userModel.findByIdAndUpdate(
-      createVictimDto.capturedBy,
+      createVictimDto.developerId,
+      { isVictim: true },
+      { new: true },
+    );
+
+    // 2. Incrementar contador del captor (slave o juan)
+    await this.userModel.findByIdAndUpdate(
+      captorId,
       { $inc: { captureCount: 1 } },
       { new: true },
     );
 
-    return savedVictim;
+    // 3. Crear la víctima, asociando automáticamente quién la capturó
+    const newVictim = new this.victimModel({
+      ...createVictimDto,
+      capturedBy: captorId,
+    });
+
+    return newVictim.save();
   }
 
   async findAll(): Promise<Victim[]> {

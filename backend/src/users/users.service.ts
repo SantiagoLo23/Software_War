@@ -67,7 +67,7 @@ export class UsersService {
   // Get top 10 slaves by captureCount
   async getLeaderboard(): Promise<User[]> {
     return this.userModel
-      .find({ role: Roles.SLAVE }) // o Roles.SLAVE si usas enum
+      .find({ role: Roles.SLAVE }) 
       .sort({ captureCount: -1 })
       .limit(10)
       .exec();
@@ -78,4 +78,21 @@ export class UsersService {
   async findByUsername(username: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ username }).exec();
   }
+
+  async findVictims(): Promise<User[]> {
+    return this.userModel.find({ role: Roles.DEVELOPER, isVictim: true }).exec();
+  }
+
+  async findAvailableDevelopers(): Promise<User[]> {
+    return this.userModel
+      .find({ role: Roles.DEVELOPER, isVictim: false })
+      .exec();
+  }
+
+    async findAllDevelopers(): Promise<User[]> {
+    return this.userModel
+      .find({ role: Roles.DEVELOPER})
+      .exec();
+  }
+
 }

@@ -5,9 +5,6 @@ export type VictimDocument = Victim & Document;
 
 @Schema()
 export class Victim {
-  @Prop({ required: true })
-  name: string;
-
   @Prop({ type: [String], default: [] })
   skills: string[];
 
@@ -19,6 +16,9 @@ export class Victim {
 
   @Prop({ required: true })
   capturedBy: string;
+
+  @Prop({ required: true })
+  developerId: string;
 }
 
 export const VictimSchema = SchemaFactory.createForClass(Victim);

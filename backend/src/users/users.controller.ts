@@ -28,50 +28,73 @@ export class UsersController {
   }
 
   // Get all users (admin only)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN)
   @Get()
   async findAll() {
     return this.usersService.findAll();
   }
 
+    // Get own profile
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN, Roles.SLAVE)
+  @Get('me')
+  async getProfile(@Request() req) {
+    return this.usersService.findById(req.user._id);
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @RolesDecorator(Roles.JUAN)
-  @Get('protected')
-  getProtectedData() {
-    return { message: 'Access granted to Juan' };
+  @Get('leaderboard')
+  async getLeaderboard() {
+    return this.usersService.getLeaderboard();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN, Roles.SLAVE)
+  @Get('victims')
+  getVictims() {
+    return this.usersService.findVictims();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN, Roles.SLAVE)
+  @Get('developers')
+  getAllDevelopers() {
+    return this.usersService.findAllDevelopers();
+  }
+
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN, Roles.SLAVE)
+  @Get('available')
+  getAvailableDevelopers() {
+    return this.usersService.findAvailableDevelopers();
   }
 
   // Get user by ID
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN)
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
   }
 
   // Update user by ID
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN)
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   // Delete user by ID
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
 
-  // Get own profile
-  @UseGuards(JwtAuthGuard)
-  @Get('me')
-  async getProfile(@Request() req) {
-    return this.usersService.findById(req.user.userId);
-  }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('leaderboard')
-  async getLeaderboard() {
-    return this.usersService.getLeaderboard();
-  }
 }
