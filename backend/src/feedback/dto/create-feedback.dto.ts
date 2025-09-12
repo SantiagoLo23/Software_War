@@ -5,7 +5,7 @@ import {
   IsEmail,
   IsBoolean,
 } from 'class-validator';
-import { FeedbackType, FeedbackStatus } from '../schemas/feedback.schema';
+import { FeedbackType } from '../schemas/feedback.schema';
 
 export class CreateFeedbackDto {
   @IsString()
@@ -51,10 +51,6 @@ export class UpdateFeedbackDto {
   @IsEnum(FeedbackType)
   @IsOptional()
   type?: FeedbackType;
-
-  @IsEnum(FeedbackStatus)
-  @IsOptional()
-  status?: FeedbackStatus;
 
   @IsString()
   @IsOptional()

@@ -33,8 +33,7 @@ export class FeedbackService {
   async findResistanceTips(): Promise<Partial<Feedback>[]> {
     const feedbacks = await this.feedbackModel
       .find({ type: FeedbackType.RESISTANCE_TIP })
-      .sort({ upvotes: -1 })
-      .limit(20)
+      .sort({ upvotes: -1, createdAt: -1 })
       .exec();
 
     return feedbacks.map(this.sanitizePublicFeedback);
@@ -44,7 +43,15 @@ export class FeedbackService {
     const feedbacks = await this.feedbackModel
       .find({ type: FeedbackType.SURVIVAL_STORY })
       .sort({ upvotes: -1, createdAt: -1 })
-      .limit(10)
+      .exec();
+
+    return feedbacks.map(this.sanitizePublicFeedback);
+  }
+
+  async findSlaveActivityReports(): Promise<Partial<Feedback>[]> {
+    const feedbacks = await this.feedbackModel
+      .find({ type: FeedbackType.SLAVE_ACTIVITY_REPORT })
+      .sort({ upvotes: -1, createdAt: -1 })
       .exec();
 
     return feedbacks.map(this.sanitizePublicFeedback);

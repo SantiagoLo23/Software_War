@@ -7,15 +7,6 @@ export enum FeedbackType {
   SLAVE_ACTIVITY_REPORT = 'slave_activity_report',
   SURVIVAL_STORY = 'survival_story',
   RESISTANCE_TIP = 'resistance_tip',
-  BUG_REPORT = 'bug_report',
-  GENERAL_FEEDBACK = 'general_feedback',
-}
-
-export enum FeedbackStatus {
-  PENDING = 'pending',
-  REVIEWED = 'reviewed',
-  RESOLVED = 'resolved',
-  DISMISSED = 'dismissed',
 }
 
 @Schema({ timestamps: true })
@@ -28,15 +19,9 @@ export class Feedback {
 
   @Prop({
     enum: FeedbackType,
-    default: FeedbackType.GENERAL_FEEDBACK,
+    default: FeedbackType.RESISTANCE_TIP,
   })
   type: FeedbackType;
-
-  @Prop({
-    enum: FeedbackStatus,
-    default: FeedbackStatus.PENDING,
-  })
-  status: FeedbackStatus;
 
   @Prop()
   reporterName?: string; // Optional, can be anonymous
@@ -55,18 +40,6 @@ export class Feedback {
 
   @Prop({ default: 0 })
   downvotes: number;
-
-  @Prop()
-  adminResponse?: string; // Response from Juan Sao Ville
-
-  @Prop()
-  reviewedBy?: string; // Admin who reviewed it
-
-  @Prop()
-  reviewedAt?: Date;
-
-  @Prop({ default: true })
-  isPublic: boolean; // Whether to show in public resistance page
 }
 
 export const FeedbackSchema = SchemaFactory.createForClass(Feedback);

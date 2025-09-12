@@ -5,6 +5,7 @@ import { Victim, VictimDocument } from './schemas/victim.schema';
 import { CreateVictimDto } from './dto/create-victim.dto';
 import { UpdateVictimDto } from './dto/update-victim.dto';
 import { User } from 'src/users/schemas/user.schema';
+import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class VictimsService {
@@ -63,18 +64,42 @@ export class VictimsService {
     return victim;
   }
 
-  async update(id: string, updateVictimDto: UpdateVictimDto): Promise<Victim> {
-    const updatedVictim = await this.victimModel
-      .findByIdAndUpdate(id, updateVictimDto, {
-        new: true,
-      })
-      .exec();
+  async update(
+    id: string,
+    updateVictimDto: UpdateVictimDto,
+    user: any,
+  ): Promise<Victim> {
+    const victim = await this.victimModel.findById(id).exec();
 
-    if (!updatedVictim) {
+    if (!victim) {
       throw new NotFoundException(`Victim with ID ${id} not found`);
     }
 
-    return updatedVictim;
+    const isJuan = user.role === 'juan';
+    const isSlave = user.role === 'slave';
+
+    // Prevent capturedBy from being updated
+    if ('capturedBy' in updateVictimDto) {
+      throw new BadRequestException('capturedBy field cannot be updated');
+    }
+
+    // Juan can edit any victim
+    if (isJuan) {
+      return this.victimModel
+        .findByIdAndUpdate(id, updateVictimDto, { new: true })
+        .exec() as Promise<Victim>;
+    }
+
+    // Slave can only edit their own victims
+    if (isSlave && victim.capturedBy === user._id.toString()) {
+      return this.victimModel
+        .findByIdAndUpdate(id, updateVictimDto, { new: true })
+        .exec() as Promise<Victim>;
+    }
+
+    throw new BadRequestException(
+      'You do not have permission to update this victim it is not captured by you',
+    );
   }
 
   async remove(id: string): Promise<{ message: string }> {

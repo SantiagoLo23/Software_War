@@ -50,6 +50,13 @@ export class FeedbackController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @RolesDecorator(Roles.DEVELOPER)
+  @Get('slave-activity-reports')
+  async getSlaveActivityReports() {
+    return this.feedbackService.findSlaveActivityReports();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.DEVELOPER)
   @Patch(':id/vote')
   async voteFeedback(
     @Param('id') id: string,

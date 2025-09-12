@@ -63,8 +63,9 @@ export class VictimsController {
   async update(
     @Param('id') id: string,
     @Body() updateVictimDto: UpdateVictimDto,
+    @Request() req,
   ) {
-    return this.victimsService.update(id, updateVictimDto);
+    return this.victimsService.update(id, updateVictimDto, req.user);
   }
 
   // Delete victim by ID (Juan only)
