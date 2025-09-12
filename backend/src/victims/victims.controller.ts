@@ -21,26 +21,44 @@ import { Roles } from '../auth/roles';
 export class VictimsController {
   constructor(private readonly victimsService: VictimsService) {}
 
-
+  /**
+   * POST /victims/create
+   * Body: {
+   *   skills: string[],
+   *   lastSeen?: string,
+   *   transformationStatus: string,
+   *   developerId: string
+   * }
+   * Automatically sets capturedBy from JWT
+   * Roles: Juan, Slave
+   */
   @UseGuards(JwtAuthGuard, RolesGuard)
   @RolesDecorator(Roles.JUAN, Roles.SLAVE)
   @Post('create')
   async create(@Body() createVictimDto: CreateVictimDto, @Request() req) {
-    const captorId = req.user._id; // 👈 viene del token JWT
+    const captorId = req.user._id;
     return this.victimsService.create(createVictimDto, captorId);
   }
 
+  // Get all victims (Juan and Slave)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN, Roles.SLAVE)
   @Get()
   async findAll() {
     return this.victimsService.findAll();
   }
 
-  
+  // Get victim by ID (Juan and Slave)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN, Roles.SLAVE)
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.victimsService.findById(id);
   }
 
+  // Update victim by ID (Juan and Slave)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN, Roles.SLAVE)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -49,6 +67,9 @@ export class VictimsController {
     return this.victimsService.update(id, updateVictimDto);
   }
 
+  // Delete victim by ID (Juan only)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.victimsService.remove(id);

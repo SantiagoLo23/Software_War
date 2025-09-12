@@ -11,51 +11,54 @@ import * as bcrypt from 'bcrypt';
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
+  private sanitizeUser(user: UserDocument): Partial<User> {
+    const { password, ...rest } = user.toObject();
+    return rest;
+  }
+
+  async create(createUserDto: CreateUserDto): Promise<Partial<User>> {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(
       createUserDto.password,
       saltRounds,
     );
-
     const newUser = new this.userModel({
       ...createUserDto,
       password: hashedPassword,
     });
 
-    return newUser.save();
+    const savedUser = await newUser.save();
+    return this.sanitizeUser(savedUser);
   }
 
-  // Get all users (admin only)
-  async findAll(): Promise<User[]> {
-    return this.userModel.find().exec();
+  async findAll(): Promise<Partial<User>[]> {
+    const users = await this.userModel.find().exec();
+    return users.map((user) => this.sanitizeUser(user));
   }
 
-  // Get user by ID
-  async findById(id: string): Promise<User> {
+  async findById(id: string): Promise<Partial<User>> {
     const user = await this.userModel.findById(id).exec();
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    return user;
+    return this.sanitizeUser(user);
   }
 
-  // Update user by ID
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+  async update(
+    id: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<Partial<User>> {
     const updatedUser = await this.userModel
-      .findByIdAndUpdate(id, updateUserDto, {
-        new: true,
-      })
+      .findByIdAndUpdate(id, updateUserDto, { new: true })
       .exec();
 
     if (!updatedUser) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    return updatedUser;
+    return this.sanitizeUser(updatedUser);
   }
 
-  // Delete user by ID
   async remove(id: string): Promise<{ message: string }> {
     const result = await this.userModel.findByIdAndDelete(id).exec();
     if (!result) {
@@ -64,35 +67,40 @@ export class UsersService {
     return { message: `User with ID ${id} deleted successfully` };
   }
 
-  // Get top 10 slaves by captureCount
-  async getLeaderboard(): Promise<User[]> {
-    return this.userModel
-      .find({ role: Roles.SLAVE }) 
+  async getLeaderboard(): Promise<Partial<User>[]> {
+    const slaves = await this.userModel
+      .find({ role: Roles.SLAVE })
       .sort({ captureCount: -1 })
       .limit(10)
       .exec();
-  }
 
-  // Find user by username
+    return slaves.map((user) => this.sanitizeUser(user));
+  }
 
   async findByUsername(username: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ username }).exec();
   }
 
-  async findVictims(): Promise<User[]> {
-    return this.userModel.find({ role: Roles.DEVELOPER, isVictim: true }).exec();
+  async findVictims(): Promise<Partial<User>[]> {
+    const victims = await this.userModel
+      .find({ role: Roles.DEVELOPER, isVictim: true })
+      .exec();
+
+    return victims.map((user) => this.sanitizeUser(user));
   }
 
-  async findAvailableDevelopers(): Promise<User[]> {
-    return this.userModel
+  async findAvailableDevelopers(): Promise<Partial<User>[]> {
+    const available = await this.userModel
       .find({ role: Roles.DEVELOPER, isVictim: false })
       .exec();
+
+    return available.map((user) => this.sanitizeUser(user));
   }
 
-    async findAllDevelopers(): Promise<User[]> {
-    return this.userModel
-      .find({ role: Roles.DEVELOPER})
+  async findAllDevelopers(): Promise<Partial<User>[]> {
+    const developers = await this.userModel
+      .find({ role: Roles.DEVELOPER })
       .exec();
+    return developers.map((user) => this.sanitizeUser(user));
   }
-
 }

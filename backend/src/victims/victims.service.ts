@@ -13,22 +13,36 @@ export class VictimsService {
     @InjectModel(User.name) private userModel: Model<any>,
   ) {}
 
-  async create(createVictimDto: CreateVictimDto, captorId: string): Promise<Victim> {
-    // 1. Marcar al developer como víctima
+  async create(
+    createVictimDto: CreateVictimDto,
+    captorId: string,
+  ): Promise<Victim> {
+    // 1. Validate developer
+    const developer = await this.userModel.findById(
+      createVictimDto.developerId,
+    );
+    if (!developer || developer.role !== 'developer') {
+      throw new NotFoundException('Developer not found or invalid role');
+    }
+    if (developer.isVictim) {
+      throw new Error('Developer is already marked as a victim');
+    }
+
+    // 2. Mark developer as victim
     await this.userModel.findByIdAndUpdate(
       createVictimDto.developerId,
       { isVictim: true },
       { new: true },
     );
 
-    // 2. Incrementar contador del captor (slave o juan)
+    // 3. Increment captor's capture count
     await this.userModel.findByIdAndUpdate(
       captorId,
       { $inc: { captureCount: 1 } },
       { new: true },
     );
 
-    // 3. Crear la víctima, asociando automáticamente quién la capturó
+    // 4. Create victim record
     const newVictim = new this.victimModel({
       ...createVictimDto,
       capturedBy: captorId,

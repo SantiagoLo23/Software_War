@@ -21,13 +21,22 @@ export class RolesGuard implements CanActivate {
     if (!requiredRoles) return true;
 
     const request = context.switchToHttp().getRequest();
-    console.log('User in request:', request.user); // ✅ should show user object
-
     const user = request.user;
+
+    console.log('User in request:', user);
+
     if (!user || !user.role) {
-      throw new UnauthorizedException('Role not found');
+      console.error('Access denied: Missing user or role in request');
+      throw new UnauthorizedException('Access denied: No role found in token');
     }
 
-    return requiredRoles.includes(user.role);
+    if (!requiredRoles.includes(user.role)) {
+      console.warn(
+        `Access denied for user ${user.username} with role ${user.role}`,
+      );
+      throw new UnauthorizedException('Insufficient role permissions');
+    }
+
+    return true;
   }
 }

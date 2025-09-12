@@ -21,7 +21,7 @@ import { Roles } from '../auth/roles';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // Public signup route
+  // Public signup route (available to everyone)
   @Post('signup')
   async signup(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
@@ -35,7 +35,7 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
-    // Get own profile
+  // Get own profile (juan and slave)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @RolesDecorator(Roles.JUAN, Roles.SLAVE)
   @Get('me')
@@ -43,6 +43,7 @@ export class UsersController {
     return this.usersService.findById(req.user._id);
   }
 
+  // Get leaderboard (juan only)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @RolesDecorator(Roles.JUAN)
   @Get('leaderboard')
@@ -50,6 +51,7 @@ export class UsersController {
     return this.usersService.getLeaderboard();
   }
 
+  // Get all victims (juan and slave)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @RolesDecorator(Roles.JUAN, Roles.SLAVE)
   @Get('victims')
@@ -57,6 +59,7 @@ export class UsersController {
     return this.usersService.findVictims();
   }
 
+  // Get all developers (juan and slave)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @RolesDecorator(Roles.JUAN, Roles.SLAVE)
   @Get('developers')
@@ -64,7 +67,7 @@ export class UsersController {
     return this.usersService.findAllDevelopers();
   }
 
-
+  // Get available developers (juan and slave)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @RolesDecorator(Roles.JUAN, Roles.SLAVE)
   @Get('available')
@@ -72,7 +75,7 @@ export class UsersController {
     return this.usersService.findAvailableDevelopers();
   }
 
-  // Get user by ID
+  // Get user by ID (juan only)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @RolesDecorator(Roles.JUAN)
   @Get(':id')
@@ -80,7 +83,7 @@ export class UsersController {
     return this.usersService.findById(id);
   }
 
-  // Update user by ID
+  // Update user by ID (juan only)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @RolesDecorator(Roles.JUAN)
   @Patch(':id')
@@ -88,13 +91,11 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
-  // Delete user by ID
+  // Delete user by ID (juan only)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @RolesDecorator(Roles.JUAN)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
-
-
 }

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
-import { Roles } from './roles'; // Asegúrate de que roles.ts esté en la misma carpeta
+import { Roles } from './roles';
 
 @Injectable()
 export class AuthService {
