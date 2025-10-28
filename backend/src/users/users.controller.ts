@@ -98,4 +98,14 @@ export class UsersController {
   async remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @RolesDecorator(Roles.JUAN)
+  @Patch(':id/reward')
+  async assignReward(
+    @Param('id') id: string,
+    @Body() body: { reward: string },
+  ) {
+    return this.usersService.update(id, { reward: body.reward });
+  }
 }

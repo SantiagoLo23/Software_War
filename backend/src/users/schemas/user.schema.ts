@@ -25,6 +25,9 @@ export class User {
 
   @Prop({ default: false })
   isVictim: boolean;
+
+  @Prop({ default: null })
+  reward?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
