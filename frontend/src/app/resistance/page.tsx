@@ -1,6 +1,3 @@
-// frontend/src/app/resistance/page.tsx
-// Developer Resistance Page - Tips, memes, stories, and feedback form (DEVELOPER ONLY)
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -42,6 +39,9 @@ export default function ResistancePage() {
     location: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [userVotes, setUserVotes] = useState<
+    Record<string, "upvote" | "downvote">
+  >({});
 
   useEffect(() => {
     if (
@@ -53,6 +53,7 @@ export default function ResistancePage() {
     }
 
     loadData();
+    loadUserVotes();
   }, []);
 
   const loadData = async () => {
@@ -73,10 +74,35 @@ export default function ResistancePage() {
     }
   };
 
+  const loadUserVotes = () => {
+    const savedVotes = localStorage.getItem("userVotes");
+    if (savedVotes) {
+      setUserVotes(JSON.parse(savedVotes));
+    }
+  };
+
+  const saveUserVotes = (votes: Record<string, "upvote" | "downvote">) => {
+    localStorage.setItem("userVotes", JSON.stringify(votes));
+    setUserVotes(votes);
+  };
+
   const handleVote = async (id: string, voteType: "upvote" | "downvote") => {
+    const currentVote = userVotes[id];
     try {
-      await feedbackAPI.vote(id, voteType);
-      loadData();
+      const res = await feedbackAPI.vote(id, voteType);
+      const updated = res.data;
+
+      setTips((prev) => prev.map((itm) => (itm._id === id ? updated : itm)));
+      setStories((prev) => prev.map((itm) => (itm._id === id ? updated : itm)));
+      setReports((prev) => prev.map((itm) => (itm._id === id ? updated : itm)));
+
+      const newVotes = { ...userVotes };
+      if (currentVote === voteType) {
+        delete newVotes[id];
+      } else {
+        newVotes[id] = voteType;
+      }
+      saveUserVotes(newVotes);
     } catch (error) {
       console.error("Failed to vote:", error);
     }
@@ -87,7 +113,18 @@ export default function ResistancePage() {
     setSubmitting(true);
 
     try {
-      await feedbackAPI.create(formData);
+      const payload: CreateFeedbackDto = {
+        title: formData.title.trim(),
+        message: formData.message.trim(),
+        type: formData.type,
+        reporterName: formData.reporterName?.trim() || undefined,
+        reporterEmail: formData.reporterEmail?.trim() || undefined,
+        suspiciousSlaveActivity:
+          formData.suspiciousSlaveActivity?.trim() || undefined,
+        location: formData.location?.trim() || undefined,
+      };
+
+      await feedbackAPI.create(payload);
       setShowFeedbackForm(false);
       setFormData({
         title: "",
@@ -99,8 +136,9 @@ export default function ResistancePage() {
         location: "",
       });
       loadData();
-    } catch (error) {
-      alert("Failed to submit feedback");
+    } catch (error: any) {
+      console.error("Feedback error:", error.response?.data);
+      alert(error.response?.data?.message || "Failed to submit feedback");
     } finally {
       setSubmitting(false);
     }
@@ -225,6 +263,7 @@ export default function ResistancePage() {
                 key={item._id}
                 feedback={item}
                 onVote={handleVote}
+                userVotes={userVotes}
               />
             ))
           )}
@@ -240,7 +279,6 @@ export default function ResistancePage() {
             </h3>
 
             <form onSubmit={handleSubmitFeedback} className="space-y-4">
-              {/* Type */}
               <div>
                 <label className="block text-sm font-medium mb-2">Type *</label>
                 <select
@@ -266,7 +304,6 @@ export default function ResistancePage() {
                 </select>
               </div>
 
-              {/* Title */}
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Title *
@@ -283,7 +320,6 @@ export default function ResistancePage() {
                 />
               </div>
 
-              {/* Message */}
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Message *
@@ -300,14 +336,13 @@ export default function ResistancePage() {
                 />
               </div>
 
-              {/* Reporter Name (Optional) */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Your Name (Optional - can be anonymous)
+                  Your Name (Optional)
                 </label>
                 <input
                   type="text"
-                  value={formData.reporterName}
+                  value={formData.reporterName || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, reporterName: e.target.value })
                   }
@@ -316,7 +351,6 @@ export default function ResistancePage() {
                 />
               </div>
 
-              {/* Conditional Fields for Reports */}
               {formData.type === FeedbackType.SLAVE_ACTIVITY_REPORT && (
                 <>
                   <div>
@@ -325,7 +359,7 @@ export default function ResistancePage() {
                     </label>
                     <input
                       type="text"
-                      value={formData.suspiciousSlaveActivity}
+                      value={formData.suspiciousSlaveActivity || ""}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
@@ -343,7 +377,7 @@ export default function ResistancePage() {
                     </label>
                     <input
                       type="text"
-                      value={formData.location}
+                      value={formData.location || ""}
                       onChange={(e) =>
                         setFormData({ ...formData, location: e.target.value })
                       }
@@ -354,7 +388,6 @@ export default function ResistancePage() {
                 </>
               )}
 
-              {/* Submit */}
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
@@ -389,7 +422,6 @@ export default function ResistancePage() {
   );
 }
 
-// Meme Card Component
 function MemeCard({ title, text }: { title: string; text: string }) {
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-green-500 transition-colors">
@@ -399,13 +431,14 @@ function MemeCard({ title, text }: { title: string; text: string }) {
   );
 }
 
-// Feedback Card Component
 function FeedbackCard({
   feedback,
   onVote,
+  userVotes,
 }: {
   feedback: Feedback;
   onVote: (id: string, type: "upvote" | "downvote") => void;
+  userVotes: Record<string, "upvote" | "downvote">;
 }) {
   const getTypeColor = () => {
     switch (feedback.type) {
@@ -428,6 +461,8 @@ function FeedbackCard({
         return <AlertTriangle className="w-4 h-4" />;
     }
   };
+
+  const currentVote = userVotes[feedback._id];
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 hover:border-gray-700 transition-colors">
@@ -455,20 +490,37 @@ function FeedbackCard({
         </div>
       </div>
 
-      {/* Voting */}
       <div className="flex items-center gap-4 mt-4">
         <button
           onClick={() => onVote(feedback._id, "upvote")}
-          className="flex items-center gap-1 px-3 py-1 bg-gray-800 hover:bg-green-500/20 rounded-lg transition-colors group"
+          disabled={currentVote === "upvote"}
+          className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-colors ${
+            currentVote === "upvote"
+              ? "bg-green-500/30 border border-green-500"
+              : "bg-gray-800 hover:bg-green-500/20"
+          }`}
         >
-          <ThumbsUp className="w-4 h-4 group-hover:text-green-500" />
+          <ThumbsUp
+            className={`w-4 h-4 ${
+              currentVote === "upvote" ? "text-green-500" : ""
+            }`}
+          />
           <span className="text-sm">{feedback.upvotes}</span>
         </button>
         <button
           onClick={() => onVote(feedback._id, "downvote")}
-          className="flex items-center gap-1 px-3 py-1 bg-gray-800 hover:bg-red-500/20 rounded-lg transition-colors group"
+          disabled={currentVote === "downvote"}
+          className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-colors ${
+            currentVote === "downvote"
+              ? "bg-red-500/30 border border-red-500"
+              : "bg-gray-800 hover:bg-red-500/20"
+          }`}
         >
-          <ThumbsDown className="w-4 h-4 group-hover:text-red-500" />
+          <ThumbsDown
+            className={`w-4 h-4 ${
+              currentVote === "downvote" ? "text-red-500" : ""
+            }`}
+          />
           <span className="text-sm">{feedback.downvotes}</span>
         </button>
       </div>

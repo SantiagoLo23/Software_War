@@ -40,6 +40,12 @@ export class Feedback {
 
   @Prop({ default: 0 })
   downvotes: number;
+
+  @Prop({ type: [String], default: [] })
+  upvoters: string[];
+
+  @Prop({ type: [String], default: [] })
+  downvoters: string[];
 }
 
 export const FeedbackSchema = SchemaFactory.createForClass(Feedback);

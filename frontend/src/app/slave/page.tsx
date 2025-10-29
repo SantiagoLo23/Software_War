@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { authHelper } from "@/lib/auth";
 import { usersAPI, victimsAPI } from "@/lib/api";
 import { User, Victim, UserRole, CreateVictimDto } from "@/types";
+import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import {
   Target,
@@ -14,6 +15,7 @@ import {
   Plus,
   X,
   CheckCircle,
+  Edit2,
 } from "lucide-react";
 
 export default function SlaveDashboard() {
@@ -21,6 +23,7 @@ export default function SlaveDashboard() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<User | null>(null);
   const [myVictims, setMyVictims] = useState<Victim[]>([]);
+  const [allDevelopers, setAllDevelopers] = useState<User[]>([]);
   const [availableDevelopers, setAvailableDevelopers] = useState<User[]>([]);
   const [showCaptureForm, setShowCaptureForm] = useState(false);
   const [formData, setFormData] = useState<CreateVictimDto>({
@@ -34,11 +37,14 @@ export default function SlaveDashboard() {
   const [customStatus, setCustomStatus] = useState("");
   const [editingVictim, setEditingVictim] = useState<Victim | null>(null);
   const [editData, setEditData] = useState<Partial<Victim>>({});
+  const pathname = usePathname();
+  const showNavbar = pathname === "/slave";
 
   useEffect(() => {
+    const userRole = authHelper.getUserRole();
     if (
       !authHelper.isAuthenticated() ||
-      authHelper.getUserRole() !== UserRole.SLAVE
+      (userRole !== UserRole.SLAVE && userRole !== UserRole.JUAN)
     ) {
       router.push("/");
       return;
@@ -49,10 +55,11 @@ export default function SlaveDashboard() {
 
   const loadData = async () => {
     try {
-      const [profileRes, victimsRes, devsRes] = await Promise.all([
+      const [profileRes, victimsRes, devsRes, allDevsRes] = await Promise.all([
         usersAPI.getMe(),
         victimsAPI.getAll(),
         usersAPI.getAvailable(),
+        usersAPI.getDevelopers(),
       ]);
 
       setProfile(profileRes.data);
@@ -65,6 +72,7 @@ export default function SlaveDashboard() {
       setMyVictims(myVictimsList);
 
       setAvailableDevelopers(devsRes.data);
+      setAllDevelopers(allDevsRes.data);
     } catch (error) {
       console.error("Failed to load data:", error);
     } finally {
@@ -119,6 +127,38 @@ export default function SlaveDashboard() {
     }
   };
 
+  const handleUpdateVictim = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingVictim) return;
+
+    setSubmitting(true);
+    try {
+      const finalData = {
+        ...editData,
+        transformationStatus:
+          editData.transformationStatus === "Custom"
+            ? customStatus || "Custom"
+            : editData.transformationStatus,
+      };
+
+      await victimsAPI.update(editingVictim._id, finalData);
+      setEditingVictim(null);
+      setEditData({});
+      setCustomStatus("");
+      loadData();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update developer");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const getDeveloperName = (developerId: string): string => {
+    const dev = allDevelopers.find((d) => d._id === developerId);
+    return dev ? dev.username : `Developer ID: ${developerId.slice(-6)}`;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -129,13 +169,15 @@ export default function SlaveDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-950">
-      <Navbar />
+      {showNavbar && <Navbar />}
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-purple-500 mb-2">
-            Capture Agent Dashboard
+            {profile?.role === "juan"
+              ? "Supreme Capture Interface"
+              : "Capture Agent Dashboard"}
           </h1>
           <p className="text-gray-400">
             Your mission: Convert developers into data scientists
@@ -194,55 +236,66 @@ export default function SlaveDashboard() {
             </p>
           ) : (
             <div className="space-y-3">
-              {myVictims.map((victim) => {
-                const dev = availableDevelopers.find(
-                  (d) => d._id === victim.developerId
-                );
-                return (
-                  <div
-                    key={victim._id}
-                    className="bg-gray-800 rounded-lg p-4 hover:bg-gray-750 transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-semibold text-lg">
-                          Developer ID: {victim.developerId.slice(-6)}
-                        </h3>
-                        <p className="text-sm text-gray-400">
-                          Last seen: {victim.lastSeen || "Unknown"}
-                        </p>
-                      </div>
-                      <span className="px-3 py-1 bg-purple-500/20 border border-purple-500 rounded-full text-purple-500 text-sm">
-                        {victim.transformationStatus}
-                      </span>
+              {myVictims.map((victim) => (
+                <div
+                  key={victim._id}
+                  className="bg-gray-800 rounded-lg p-4 hover:bg-gray-750 transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <h3 className="font-semibold text-lg">
+                        {getDeveloperName(victim.developerId)}
+                      </h3>
+                      <p className="text-sm text-gray-400">
+                        Last seen: {victim.lastSeen || "Unknown"}
+                      </p>
                     </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {victim.skills.map((skill, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2 py-1 bg-gray-700 rounded text-xs"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => {
-                        setEditingVictim(victim);
-                        setEditData({
-                          lastSeen: victim.lastSeen,
-                          transformationStatus: victim.transformationStatus,
-                          skills: victim.skills,
-                        });
-                      }}
-                      className="text-sm text-purple-400 hover:text-purple-300"
-                    >
-                      Edit
-                    </button>
+                    <span className="px-3 py-1 bg-purple-500/20 border border-purple-500 rounded-full text-purple-500 text-sm">
+                      {victim.transformationStatus}
+                    </span>
                   </div>
-                );
-              })}
+
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {victim.skills.map((skill, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-1 bg-gray-700 rounded text-xs"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setEditingVictim(victim);
+                      setEditData({
+                        lastSeen: victim.lastSeen,
+                        transformationStatus: victim.transformationStatus,
+                        skills: victim.skills,
+                      });
+
+                      const presetStatuses = [
+                        "Just Captured",
+                        "Learning Pandas",
+                        "Confused by NumPy",
+                        "Writing ML Models",
+                        "Fully Transformed",
+                      ];
+
+                      if (
+                        !presetStatuses.includes(victim.transformationStatus)
+                      ) {
+                        setCustomStatus(victim.transformationStatus);
+                      }
+                    }}
+                    className="flex items-center gap-1 text-sm text-purple-400 hover:text-purple-300 transition-colors"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                    Edit Status
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -253,41 +306,22 @@ export default function SlaveDashboard() {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto glow-purple">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-bold">Edit Captured Developer</h3>
+              <h3 className="text-2xl font-bold">
+                Edit: {getDeveloperName(editingVictim.developerId)}
+              </h3>
               <button
-                onClick={() => setEditingVictim(null)}
+                onClick={() => {
+                  setEditingVictim(null);
+                  setEditData({});
+                  setCustomStatus("");
+                }}
                 className="text-gray-400 hover:text-white"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setSubmitting(true);
-                try {
-                  const finalData = {
-                    ...editData,
-                    transformationStatus:
-                      editData.transformationStatus === "Custom"
-                        ? customStatus || "Custom"
-                        : editData.transformationStatus,
-                  };
-
-                  await victimsAPI.update(editingVictim._id, finalData);
-                  setEditingVictim(null);
-                  loadData();
-                } catch (err) {
-                  console.error(err);
-                  alert("Failed to update developer");
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
-              className="space-y-4"
-            >
-              {/* Editable Fields */}
+            <form onSubmit={handleUpdateVictim} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Last Seen Location
@@ -302,7 +336,6 @@ export default function SlaveDashboard() {
                 />
               </div>
 
-              {/* Transformation Status (with Custom Option) */}
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Transformation Status
@@ -315,7 +348,6 @@ export default function SlaveDashboard() {
                       "Confused by NumPy",
                       "Writing ML Models",
                       "Fully Transformed",
-                      "Custom",
                     ].includes(editData.transformationStatus || "")
                       ? editData.transformationStatus
                       : "Custom"
@@ -323,17 +355,6 @@ export default function SlaveDashboard() {
                   onChange={(e) => {
                     const value = e.target.value;
                     if (value === "Custom") {
-                      setCustomStatus(
-                        ![
-                          "Just Captured",
-                          "Learning Pandas",
-                          "Confused by NumPy",
-                          "Writing ML Models",
-                          "Fully Transformed",
-                        ].includes(editData.transformationStatus || "")
-                          ? editData.transformationStatus || ""
-                          : ""
-                      );
                       setEditData({
                         ...editData,
                         transformationStatus: "Custom",
@@ -384,7 +405,11 @@ export default function SlaveDashboard() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setEditingVictim(null)}
+                  onClick={() => {
+                    setEditingVictim(null);
+                    setEditData({});
+                    setCustomStatus("");
+                  }}
                   className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
                 >
                   Cancel
@@ -410,7 +435,6 @@ export default function SlaveDashboard() {
             </div>
 
             <form onSubmit={handleSubmitCapture} className="space-y-4">
-              {/* Select Developer */}
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Select Target Developer *
@@ -432,7 +456,6 @@ export default function SlaveDashboard() {
                 </select>
               </div>
 
-              {/* Skills */}
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Developer Skills
@@ -476,7 +499,6 @@ export default function SlaveDashboard() {
                 </div>
               </div>
 
-              {/* Last Seen */}
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Last Seen Location
@@ -492,7 +514,6 @@ export default function SlaveDashboard() {
                 />
               </div>
 
-              {/* Transformation Status */}
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Transformation Status *
@@ -515,19 +536,18 @@ export default function SlaveDashboard() {
                   <option value="Fully Transformed">Fully Transformed</option>
                   <option value="Custom">Custom</option>
                 </select>
+
+                {formData.transformationStatus === "Custom" && (
+                  <input
+                    type="text"
+                    value={customStatus}
+                    onChange={(e) => setCustomStatus(e.target.value)}
+                    placeholder="Enter custom status..."
+                    className="w-full mt-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  />
+                )}
               </div>
 
-              {formData.transformationStatus === "Custom" && (
-                <input
-                  type="text"
-                  value={customStatus}
-                  onChange={(e) => setCustomStatus(e.target.value)}
-                  placeholder="Enter custom status..."
-                  className="w-full mt-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                />
-              )}
-
-              {/* Submit */}
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"

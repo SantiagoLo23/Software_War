@@ -11,14 +11,17 @@ interface JWTPayload {
 
 export const authHelper = {
   saveToken: (token: string) => {
+    if (typeof window === "undefined") return;
     localStorage.setItem("token", token);
   },
 
   getToken: (): string | null => {
+    if (typeof window === "undefined") return null;
     return localStorage.getItem("token");
   },
 
   removeToken: () => {
+    if (typeof window === "undefined") return;
     localStorage.removeItem("token");
   },
 
@@ -31,6 +34,7 @@ export const authHelper = {
   },
 
   isAuthenticated: (): boolean => {
+    if (typeof window === "undefined") return false;
     const token = authHelper.getToken();
     if (!token) return false;
 
@@ -42,6 +46,7 @@ export const authHelper = {
   },
 
   getUserRole: (): UserRole | null => {
+    if (typeof window === "undefined") return null;
     const token = authHelper.getToken();
     if (!token) return null;
 
@@ -50,6 +55,7 @@ export const authHelper = {
   },
 
   getUserId: (): string | null => {
+    if (typeof window === "undefined") return null;
     const token = authHelper.getToken();
     if (!token) return null;
 
@@ -58,6 +64,7 @@ export const authHelper = {
   },
 
   getUsername: (): string | null => {
+    if (typeof window === "undefined") return null;
     const token = authHelper.getToken();
     if (!token) return null;
 
@@ -66,6 +73,7 @@ export const authHelper = {
   },
 
   logout: () => {
+    if (typeof window === "undefined") return;
     authHelper.removeToken();
   },
 };

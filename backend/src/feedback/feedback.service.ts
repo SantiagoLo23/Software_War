@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -7,6 +11,7 @@ import {
   FeedbackType,
 } from '../feedback/schemas/feedback.schema';
 import { CreateFeedbackDto } from '../feedback/dto/create-feedback.dto';
+import { VoteType } from '../feedback/dto/create-feedback.dto';
 
 @Injectable()
 export class FeedbackService {
@@ -59,22 +64,50 @@ export class FeedbackService {
 
   async voteFeedback(
     id: string,
-    voteType: 'upvote' | 'downvote',
+    voteType: VoteType,
+    userId: string,
   ): Promise<FeedbackDocument> {
-    const updateOperation =
-      voteType === 'upvote'
-        ? { $inc: { upvotes: 1 } }
-        : { $inc: { downvotes: 1 } };
-
-    const updatedFeedback = await this.feedbackModel
-      .findByIdAndUpdate(id, updateOperation, { new: true })
-      .exec();
-
-    if (!updatedFeedback) {
-      throw new NotFoundException('Feedback not found');
+    if (!userId) {
+      throw new BadRequestException('User id required to vote.');
     }
 
-    return updatedFeedback;
+    const feedback = await this.feedbackModel.findById(id).exec();
+    if (!feedback) throw new NotFoundException('Feedback not found');
+
+    const hasUpvoted = feedback.upvoters.includes(userId);
+    const hasDownvoted = feedback.downvoters.includes(userId);
+
+    if (
+      (voteType === 'upvote' && hasUpvoted) ||
+      (voteType === 'downvote' && hasDownvoted)
+    ) {
+      if (voteType === 'upvote') {
+        feedback.upvoters = feedback.upvoters.filter((u) => u !== userId);
+        feedback.upvotes = Math.max(0, feedback.upvotes - 1);
+      } else {
+        feedback.downvoters = feedback.downvoters.filter((u) => u !== userId);
+        feedback.downvotes = Math.max(0, feedback.downvotes - 1);
+      }
+      return feedback.save();
+    }
+
+    if (voteType === 'upvote') {
+      if (hasDownvoted) {
+        feedback.downvoters = feedback.downvoters.filter((u) => u !== userId);
+        feedback.downvotes = Math.max(0, feedback.downvotes - 1);
+      }
+      feedback.upvoters.push(userId);
+      feedback.upvotes = (feedback.upvotes || 0) + 1;
+    } else {
+      if (hasUpvoted) {
+        feedback.upvoters = feedback.upvoters.filter((u) => u !== userId);
+        feedback.upvotes = Math.max(0, feedback.upvotes - 1);
+      }
+      feedback.downvoters.push(userId);
+      feedback.downvotes = (feedback.downvotes || 0) + 1;
+    }
+
+    return feedback.save();
   }
 
   async findFeedbackById(id: string): Promise<FeedbackDocument> {

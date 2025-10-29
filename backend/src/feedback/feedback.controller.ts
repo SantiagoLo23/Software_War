@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { RolesDecorator } from '../auth/decorators/roles.decorator';
 import { Roles } from '../auth/roles';
+import { VoteType } from '../feedback/dto/create-feedback.dto';
 
 @Controller('feedback')
 export class FeedbackController {
@@ -55,14 +56,16 @@ export class FeedbackController {
     return this.feedbackService.findSlaveActivityReports();
   }
 
+  @Patch(':id/vote')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @RolesDecorator(Roles.DEVELOPER)
-  @Patch(':id/vote')
   async voteFeedback(
     @Param('id') id: string,
     @Body() voteDto: VoteFeedbackDto,
+    @Request() req,
   ) {
-    return this.feedbackService.voteFeedback(id, voteDto.voteType);
+    const userId = req.user?._id;
+    return this.feedbackService.voteFeedback(id, voteDto.voteType, userId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

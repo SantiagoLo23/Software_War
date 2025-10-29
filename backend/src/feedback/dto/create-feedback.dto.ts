@@ -61,8 +61,12 @@ export class UpdateFeedbackDto {
   isPublic?: boolean;
 }
 
+export enum VoteType {
+  UPVOTE = 'upvote',
+  DOWNVOTE = 'downvote',
+}
+
 export class VoteFeedbackDto {
-  @IsString()
-  @IsEnum(['upvote', 'downvote'])
-  voteType: 'upvote' | 'downvote';
+  @IsEnum(VoteType)
+  voteType: VoteType;
 }

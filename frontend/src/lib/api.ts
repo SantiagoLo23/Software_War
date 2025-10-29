@@ -82,8 +82,18 @@ export const feedbackAPI = {
 
   getById: (id: string) => api.get<Feedback>(`/feedback/${id}`),
 
-  vote: (id: string, voteType: "upvote" | "downvote") =>
-    api.patch<Feedback>(`/feedback/${id}/vote`, { voteType }),
+  vote: (id: string, voteType: "upvote" | "downvote") => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+    return api.patch<Feedback>(
+      `/feedback/${id}/vote`,
+      { voteType },
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }
+    );
+  },
 };
 
 export default api;
