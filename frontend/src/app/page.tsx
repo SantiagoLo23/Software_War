@@ -16,6 +16,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [showMemes, setShowMemes] = useState(false);
+  const [memes, setMemes] = useState<
+    { url: string; top: number; left: number }[]
+  >([]);
+
   useEffect(() => {
     if (authHelper.isAuthenticated()) {
       const role = authHelper.getUserRole();
@@ -35,6 +40,86 @@ export default function LoginPage() {
       case UserRole.DEVELOPER:
         router.push("/resistance");
         break;
+    }
+  };
+
+  const handleSkullClick = async () => {
+    if (showMemes) {
+      setShowMemes(false);
+      setMemes([]);
+      return;
+    }
+
+    try {
+      const res = await fetch("https://meme-api.com/gimme/programmingmemes/8");
+      const data = await res.json();
+      const memesData = data.memes;
+
+      const memeWidth = 180;
+      const memeHeight = 180;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      const loginBox = {
+        x: viewportWidth / 2 - 220,
+        y: viewportHeight / 2 - 250,
+        width: 440,
+        height: 500,
+      };
+
+      const placedMemes: {
+        url: string;
+        top: number;
+        left: number;
+      }[] = [];
+
+      const checkOverlap = (a: any, b: any) => {
+        return !(
+          a.left + memeWidth < b.left ||
+          a.left > b.left + memeWidth ||
+          a.top + memeHeight < b.top ||
+          a.top > b.top + memeHeight
+        );
+      };
+
+      for (const meme of memesData) {
+        let placed = false;
+        let attempts = 0;
+
+        while (!placed && attempts < 100) {
+          const left = Math.random() * (viewportWidth - memeWidth);
+          const top = Math.random() * (viewportHeight - memeHeight);
+          const newMeme = {
+            left,
+            top,
+            url: meme.url,
+          };
+
+          // skip if overlaps login card
+          const overlapsLogin =
+            left + memeWidth > loginBox.x &&
+            left < loginBox.x + loginBox.width &&
+            top + memeHeight > loginBox.y &&
+            top < loginBox.y + loginBox.height;
+
+          // skip if overlaps another meme
+          const overlapsOther = placedMemes.some((m) =>
+            checkOverlap(m, newMeme)
+          );
+
+          if (!overlapsLogin && !overlapsOther) {
+            placedMemes.push(newMeme);
+            placed = true;
+          }
+
+          attempts++;
+        }
+      }
+
+      setMemes(placedMemes);
+      setShowMemes(true);
+    } catch (err) {
+      console.error("Failed to load memes:", err);
     }
   };
 
@@ -66,15 +151,40 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-purple-950 p-4 relative">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-72 h-72 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
-      </div>
+      {showMemes &&
+        memes.map((m, idx) => (
+          <div
+            key={idx}
+            className="absolute rounded-lg shadow-lg transition-transform duration-300 hover:scale-105"
+            style={{
+              top: `${m.top}px`,
+              left: `${m.left}px`,
+              position: "absolute",
+              backgroundColor: "rgba(255,255,255,0.05)", // transparent box
+              borderRadius: "8px",
+              padding: "4px", // optional for spacing
+              zIndex: 5,
+            }}
+          >
+            <img
+              src={m.url}
+              alt="meme"
+              style={{
+                maxWidth: "180px",
+                maxHeight: "180px",
+                objectFit: "contain",
+                display: "block",
+              }}
+            />
+          </div>
+        ))}
 
       <div className="relative max-w-md w-full">
         <div className="text-center mb-8 animate-float">
           <div className="flex justify-center mb-4">
-            <Skull className="w-20 h-20 text-purple-500 animate-pulse-glow" />
+            <button onClick={handleSkullClick} className="relative z-20">
+              <Skull className="w-20 h-20 text-purple-500 animate-pulse-glow hover:scale-110 transition-transform" />
+            </button>
           </div>
           <h1 className="text-4xl font-bold text-glow mb-2">Juan Sao Ville</h1>
           <p className="text-gray-400 text-sm">
