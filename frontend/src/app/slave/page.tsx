@@ -39,6 +39,7 @@ export default function SlaveDashboard() {
   const [editData, setEditData] = useState<Partial<Victim>>({});
   const pathname = usePathname();
   const showNavbar = pathname === "/slave";
+  const [allVictims, setAllVictims] = useState<Victim[]>([]);
 
   useEffect(() => {
     const userRole = authHelper.getUserRole();
@@ -70,6 +71,7 @@ export default function SlaveDashboard() {
         (v) => v.capturedBy === userId
       );
       setMyVictims(myVictimsList);
+      setAllVictims(victimsRes.data);
 
       setAvailableDevelopers(devsRes.data);
       setAllDevelopers(allDevsRes.data);
@@ -189,9 +191,7 @@ export default function SlaveDashboard() {
           <div className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-lg p-6 shadow-lg">
             <div className="flex items-center justify-between mb-2">
               <Target className="w-6 h-6" />
-              <span className="text-3xl font-bold">
-                {profile?.captureCount || 0}
-              </span>
+              <span className="text-3xl font-bold">{allVictims.length}</span>
             </div>
             <p className="text-sm opacity-90">Total Captures</p>
           </div>
